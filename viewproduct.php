@@ -12,42 +12,70 @@
          <!-----------------Header & Navigation Bar----------------->
 <?php 
 include('header.php');
-
-if(!isset($_GET["pid"])){
+// Check if ProductID is set in the GET parameters
+if (!isset($_GET["pid"])) {
     header("location: pnb.php");
+    exit(); // Terminate script execution after redirection
 } else {
     $PRODUCTID = $_GET["pid"];
+
+    // Database connection establishment assumed, replace $con with your database connection
 
     ///////////////////////Display product///////////////////////
 
     $query7 = "SELECT * FROM `tblproducts` WHERE `ProductID` = ? LIMIT 1";
     $stmt_product = mysqli_prepare($con, $query7);
-    mysqli_stmt_bind_param($stmt_product, "s", $PRODUCTID);
-    mysqli_stmt_execute($stmt_product);
-    $single_product = mysqli_stmt_get_result($stmt_product);
+    if ($stmt_product) {
+        mysqli_stmt_bind_param($stmt_product, "s", $PRODUCTID);
+        mysqli_stmt_execute($stmt_product);
+        $single_product = mysqli_stmt_get_result($stmt_product);
+        if (!$single_product || mysqli_num_rows($single_product) === 0) {
+            // Product not found, handle this case (e.g., display an error message)
+        } else {
+            // Product found, proceed with displaying it
+        }
+    } else {
+        // Handle the case when prepared statement fails
+    }
 
     ///////////////////////Display reviews///////////////////////
 
     $select_reviews = "SELECT * FROM `tblproductreviews` WHERE `ProductID` = ? ORDER BY ReviewDate ASC";
     $stmt_reviews = mysqli_prepare($con, $select_reviews);
-    mysqli_stmt_bind_param($stmt_reviews, "s", $PRODUCTID);
-    mysqli_stmt_execute($stmt_reviews);
-    $result_reviews = mysqli_stmt_get_result($stmt_reviews);
+    if ($stmt_reviews) {
+        mysqli_stmt_bind_param($stmt_reviews, "s", $PRODUCTID);
+        mysqli_stmt_execute($stmt_reviews);
+        $result_reviews = mysqli_stmt_get_result($stmt_reviews);
+    } else {
+        // Handle the case when prepared statement fails
+    }
 
     ///////////////////////Display related products///////////////////////
 
     $select_category_of_product = "SELECT CategoryID as categoryid FROM `tblproducts` WHERE `ProductID` = ? LIMIT 1";
     $stmt_category = mysqli_prepare($con, $select_category_of_product);
-    mysqli_stmt_bind_param($stmt_category, "s", $PRODUCTID);
-    mysqli_stmt_execute($stmt_category);
-    $result_select_category_of_product = mysqli_stmt_get_result($stmt_category);
-    $CATEGORY_ID = mysqli_fetch_assoc($result_select_category_of_product)["categoryid"];
+    if ($stmt_category) {
+        mysqli_stmt_bind_param($stmt_category, "s", $PRODUCTID);
+        mysqli_stmt_execute($stmt_category);
+        $result_select_category_of_product = mysqli_stmt_get_result($stmt_category);
+        if ($result_select_category_of_product && mysqli_num_rows($result_select_category_of_product) > 0) {
+            $CATEGORY_ID = mysqli_fetch_assoc($result_select_category_of_product)["categoryid"];
 
-    $select_random_products = "SELECT * FROM tblproducts WHERE CategoryID = ? ORDER BY RAND() LIMIT 4";
-    $stmt_related = mysqli_prepare($con, $select_random_products);
-    mysqli_stmt_bind_param($stmt_related, "s", $CATEGORY_ID);
-    mysqli_stmt_execute($stmt_related);
-    $result_select_random_products = mysqli_stmt_get_result($stmt_related);
+            $select_random_products = "SELECT * FROM tblproducts WHERE CategoryID = ? AND ProductID != ? ORDER BY RAND() LIMIT 4";
+            $stmt_related = mysqli_prepare($con, $select_random_products);
+            if ($stmt_related) {
+                mysqli_stmt_bind_param($stmt_related, "ss", $CATEGORY_ID, $PRODUCTID);
+                mysqli_stmt_execute($stmt_related);
+                $result_select_random_products = mysqli_stmt_get_result($stmt_related);
+            } else {
+                // Handle the case when prepared statement fails
+            }
+        } else {
+            // Handle the case when category ID is not found or category has no related products
+        }
+    } else {
+        // Handle the case when prepared statement fails
+    }
 }
             ?>
          <!-----------------Side Bar----------------->
